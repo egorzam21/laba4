@@ -1,0 +1,112 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+typedef vector<vector<double>> Matrix;
+typedef vector<double> Vector;
+
+double determinant(const Matrix& A) {
+    double det = 0;
+    if (A.size() == 2) {
+        det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+    }
+    else {
+        for (int p = 0; p < A[0].size(); p++) {
+            Matrix subMatrix(A.size() - 1, Vector(A[0].size() - 1));
+            for (int i = 1; i < A.size(); i++) {
+                int subColumn = 0;
+                for (int j = 0; j < A[0].size(); j++) {
+                    if (j == p) continue;
+                    subMatrix[i - 1][subColumn] = A[i][j];
+                    subColumn++;
+                }
+            }
+            det += A[0][p] * pow(-1, p) * determinant(subMatrix);
+        }
+    }
+    return det;
+}
+
+Matrix replaceColumn(const Matrix& A, const Vector& B, int col) {
+    Matrix newMatrix = A;
+    for (int i = 0; i < A.size(); i++) {
+        newMatrix[i][col] = B[i];
+    }
+    return newMatrix;
+}
+
+Vector solveCramerMethod(const Matrix& A, const Vector& B) {
+    double detA = determinant(A);
+    if (detA == 0) {
+        cout << "Matrix is singular, no unique solutions." << endl;
+        return Vector();
+    }
+
+    Vector X(A.size());
+    for (int i = 0; i < A.size(); i++) {
+        Matrix Ai = replaceColumn(A, B, i);
+        X[i] = determinant(Ai) / detA;
+    }
+
+    return X;
+}
+
+Vector solveJacobiMethod(const Matrix& A, const Vector& B, int iterations = 100, double tolerance = 1e-2) {
+    int n = A.size();
+    Vector X(n, 0);  
+    Vector X_new(n);
+
+    for (int iter = 0; iter < iterations; iter++) {
+        for (int i = 0; i < n; i++) {
+            double sum = 0;
+            for (int j = 0; j < n; j++) {
+                if (j != i) {
+                    sum += A[i][j] * X[j];
+                }
+            }
+            X_new[i] = (B[i] - sum) / A[i][i];
+        }
+
+        double max_diff = 0;
+        for (int i = 0; i < n; i++) {
+            max_diff = max(max_diff, abs(X_new[i] - X[i]));
+        }
+        if (max_diff < tolerance) {
+            break;
+        }
+
+        X = X_new;
+    }
+
+    return X;
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    Matrix A = {
+        {5, -2, -1},
+        {2, -1, -1},
+        {2, -4, -8}
+    };
+    Vector B = { 0, -1, 1 };
+
+    Vector X_cramer = solveCramerMethod(A, B);
+    if (!X_cramer.empty()) {
+        cout << "Решение системы методом Крамера: " << endl;
+        for (double x : X_cramer) {
+            cout << x << " ";
+        }
+        cout << endl;
+    }
+
+    Vector X_jacobi = solveJacobiMethod(A, B);
+    cout << "Решение системы методом Якоби: " << endl;
+    for (double x : X_jacobi) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
